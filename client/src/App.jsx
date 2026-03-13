@@ -1,21 +1,17 @@
 // client/src/App.jsx
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline, Box } from '@mui/material';
-
-import { AuthProvider } from './context/AuthContext';
-import { WalletProvider } from './context/WalletContext';
+import { ThemeProvider, createTheme, CssBaseline, Box, Typography, Button } from '@mui/material';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { Web3Provider } from './context/Web3Context';
 import PrivateRoute from './components/PrivateRoute';
 import Navbar from './components/Navbar';
-
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-
 import ManufacturerDashboard from './pages/manufacturer/ManufacturerDashboard';
 import RegisterDrug from './pages/manufacturer/RegisterDrug';
 import TransferDrug from './pages/manufacturer/TransferDrug';
 import GenerateQR from './pages/manufacturer/GenerateQR';
-
 import DistributorDashboard from './pages/distributor/DistributorDashboard';
 import PharmacyDashboard from './pages/pharmacy/PharmacyDashboard';
 import ConsumerDashboard from './pages/consumer/ConsumerDashboard';
@@ -53,12 +49,35 @@ const AppLayout = ({ children }) => (
   </Box>
 );
 
+// Role-based redirect after login
+const RoleRedirect = () => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  const roleMap = {
+    manufacturer: '/manufacturer',
+    distributor: '/distributor',
+    pharmacy: '/pharmacy',
+    consumer: '/consumer',
+    admin: '/admin',
+  };
+  return <Navigate to={roleMap[user.role] || '/login'} replace />;
+};
+
+// Unauthorized page
+const UnauthorizedPage = () => (
+  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 2 }}>
+    <Typography variant="h4" color="error">Access Denied</Typography>
+    <Typography color="text.secondary">You do not have permission to view this page.</Typography>
+    <Button variant="contained" href="/login">Go to Login</Button>
+  </Box>
+);
+
 function App() {
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <AuthProvider>
-        <WalletProvider>
+        <Web3Provider>
           <BrowserRouter>
             <Routes>
               {/* Public routes */}
@@ -66,6 +85,10 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/verify" element={<AppLayout><ConsumerDashboard /></AppLayout>} />
               <Route path="/verify/:batchId" element={<AppLayout><ConsumerDashboard /></AppLayout>} />
+              <Route path="/unauthorized" element={<AppLayout><UnauthorizedPage /></AppLayout>} />
+
+              {/* Role-based home redirect */}
+              <Route path="/" element={<RoleRedirect />} />
 
               {/* Manufacturer */}
               <Route path="/manufacturer" element={
@@ -122,12 +145,11 @@ function App() {
                 </PrivateRoute>
               } />
 
-              {/* Redirect */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              {/* Catch-all */}
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
           </BrowserRouter>
-        </WalletProvider>
+        </Web3Provider>
       </AuthProvider>
     </ThemeProvider>
   );
