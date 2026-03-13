@@ -171,3 +171,6 @@ The pharmaceutical industry faces critical challenges:
 
 
 <!-- Deployment trigger -->
+
+
+<!-- Vercel deployment -->
