@@ -1,0 +1,21 @@
+# AI/ML Dependencies
+numpy==1.24.3
+pandas==2.0.3
+scikit-learn==1.3.0
+joblib==1.3.2
+
+# Web Framework
+Flask==2.3.3
+Flask-CORS==4.0.0
+
+# HTTP Requests
+requests==2.31.0
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Logging
+python-json-logger==2.0.7
+
+# Model Monitoring
+prometheus-client==0.17.1
