@@ -1,175 +1,184 @@
-# Blockchain-Based-Drug-Supply-Chain-Counterfeit-Medicine-Prevention-System
-A blockchain-powered drug supply chain platform that prevents counterfeit medicines by enabling end-to-end batch traceability from manufacturer to consumer. Uses Hyperledger/Ethereum, QR verification, and AI-based anomaly detection to ensure authenticity, transparency, and regulatory compliance.
-## From factory to pharmacy, every pill tells the truth.
-## Blockchain locks authenticity.
-## AI hunts anomalies.
-## Counterfeit medicines stop here.
+# 🔗 SecureRxChain
 
-![logo](https://github.com/manikantbindass/Blockchain-Based-Drug-Supply-Chain-Counterfeit-Medicine-Prevention-System/blob/main/Blockchain%20Medicine%20and%20Counterfeit%20(2).png)
+> **Blockchain-Based Drug Supply Chain & Counterfeit Medicine Prevention System**
 
-A **blockchain-powered, AI-enabled drug traceability platform** designed to eliminate counterfeit and substandard medicines by ensuring **end-to-end transparency, authenticity, and regulatory control** across the pharmaceutical supply chain.
-
----
-
-## Problem Statement
-
-Counterfeit and substandard medicines pose a serious threat to public health, particularly in large and complex pharmaceutical supply chains.  
-Key challenges include:
-- Lack of end-to-end traceability from manufacturer to consumer  
-- Difficulty in verifying medicine authenticity at each handover  
-- Limited visibility for regulators to monitor and recall compromised batches  
-- High risk of tampering during distribution and last-mile delivery  
+[![CI/CD](https://github.com/manikantbindass/SecureRxChain-Blockchain-Based-Drug-Supply-Chain-Counterfeit-Medicine-Prevention-System/actions/workflows/ci.yml/badge.svg)](https://github.com/manikantbindass/SecureRxChain-Blockchain-Based-Drug-Supply-Chain-Counterfeit-Medicine-Prevention-System/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Solidity](https://img.shields.io/badge/Solidity-0.8.20-blue)
+![Node.js](https://img.shields.io/badge/Node.js-18.x-green)
+![React](https://img.shields.io/badge/React-18.x-61DAFB)
 
 ---
 
-## 💡Solution Overview
+## 📌 Overview
 
-This project introduces a **permissioned blockchain-based supply chain system** integrated with **AI-driven anomaly detection and computer vision** to track, verify, and authenticate medicines at every stage of their lifecycle.
+SecureRxChain is a **decentralized drug supply chain management platform** that leverages Ethereum blockchain (Polygon Testnet) to ensure pharmaceutical traceability, prevent counterfeit medicines, and enforce regulatory compliance.
 
-Each medicine batch is assigned a **unique blockchain identity**, and every transfer is recorded as an immutable transaction.  
-AI models continuously monitor the system to detect suspicious behavior, while QR/DataMatrix codes allow **instant verification** by pharmacies, hospitals, and consumers.
-
----
-
-##  System Architecture
-
-### 🔗 Blockchain Layer
-- Permissioned blockchain (Hyperledger Fabric)
-- Immutable ledger for batch creation and transfers
-- Smart contracts for:
-  - Batch registration
-  - Ownership transfer
-  - Recall and freeze operations
-  - Regulatory audits
-- IPFS for storing certificates and compliance documents
-
-### 🖥️ Application Layer
-- Web dashboard for manufacturers, distributors, regulators
-- Mobile apps for pharmacies, hospitals, and consumers
-- Role-based access control (RBAC)
-
-### 🤖 AI & Analytics Layer
-- Anomaly detection for routes, time delays, and quantity mismatches
-- Graph-based analysis to identify suspicious supply chain patterns
-- Computer vision for packaging, QR code, and seal verification
+### Key Features
+- 🔒 **End-to-end batch traceability** — Manufacturer → Distributor → Retailer → Consumer
+- 📲 **QR Code verification** — Each drug batch gets a unique, tamper-proof QR
+- 🤖 **AI-based anomaly detection** — Flags suspicious supply chain activity
+- 🌐 **IPFS document storage** — Regulatory documents stored decentrally
+- 🔑 **Role-based access control** — JWT auth with on-chain role management
+- 📊 **Transparency dashboard** — Real-time audit trail for all stakeholders
 
 ---
 
-## Supply Chain Workflow
+## 🛠️ Tech Stack
 
-1. Manufacturer registers a new medicine batch on the blockchain  
-2. QR/DataMatrix code generated and printed on packaging  
-3. Each handover is scanned and recorded as a blockchain transaction  
-4. AI models monitor transactions in real time for anomalies  
-5. Pharmacies and hospitals verify authenticity before dispensing  
-6. Consumers scan QR codes to verify medicine origin and journey  
-7. Regulators can freeze, recall, or audit batches instantly
-   
-![logo](https://github.com/manikantbindass/Blockchain-Based-Drug-Supply-Chain-Counterfeit-Medicine-Prevention-System/blob/main/Blockchain%20Medicine%20and%20Counterfeit%20(1).png)
----
-
-## 🔐 Security Features
-
-- Immutable blockchain records
-- End-to-end encrypted communication
-- Multi-signature verification for critical operations
-- Role-based access control (RBAC)
-- Complete audit trail for compliance and investigations
+| Layer | Technology |
+|-------|------------|
+| Blockchain | Ethereum / Polygon Mumbai Testnet |
+| Smart Contracts | Solidity 0.8.20 + Hardhat |
+| Backend | Node.js + Express.js + MongoDB |
+| Frontend | React 18 + Material UI v5 |
+| Blockchain Bridge | ethers.js v6 |
+| QR Code | qrcode + html5-qrcode |
+| Auth | JWT + bcrypt |
+| Storage | IPFS (via Web3.Storage / Pinata) |
+| DevOps | Docker + GitHub Actions CI/CD |
 
 ---
 
-##  AI Capabilities
+## 📁 Project Structure
 
-### Anomaly Detection
-- Route deviation detection
-- Abnormal time lag analysis
-- Quantity mismatch and unauthorized batch splitting
-- Historical pattern analysis to identify counterfeit networks
-
-### Computer Vision
-- QR/DataMatrix verification
-- Packaging and label authenticity checks
-- Seal and hologram integrity detection
-- Risk scoring with confidence levels
-
----
-
-## Technology Stack
-
-### Blockchain
-- Hyperledger Fabric  
-- Smart Contracts (Chaincode)  
-- IPFS  
-
-### Backend
-- Node.js / Python (FastAPI or Django)  
-- PostgreSQL / MongoDB  
-- Redis  
-
-### Frontend
-- React.js / Next.js  
-- React Native / Flutter  
-- D3.js / Chart.js  
-
-### AI / ML
-- Python  
-- scikit-learn  
-- TensorFlow / PyTorch  
-- OpenCV  
-
----
-
-## Stakeholders
-
-- **Manufacturers:** Register and monitor medicine batches  
-- **Distributors & Warehouses:** Verify and log transfers  
-- **Hospitals & Pharmacies:** Authenticate medicines before dispensing  
-- **Consumers:** Verify medicine authenticity via QR scan  
-- **Regulators:** Monitor, audit, freeze, and recall batches  
+```
+SecureRxChain/
+├── client/                   # React frontend
+│   ├── public/
+│   ├── src/
+│   │   ├── components/       # Reusable UI components
+│   │   ├── pages/            # Route-level pages
+│   │   ├── context/          # React Context (auth, web3)
+│   │   ├── hooks/            # Custom hooks
+│   │   ├── services/         # API + contract service calls
+│   │   ├── utils/            # Helpers (QR, IPFS, format)
+│   │   └── App.jsx
+│   ├── .env.example
+│   └── package.json
+├── server/                   # Node.js backend
+│   ├── config/               # DB + env config
+│   ├── controllers/          # Route controllers
+│   ├── middleware/           # Auth, error handlers
+│   ├── models/               # Mongoose models
+│   ├── routes/               # Express routers
+│   ├── services/             # Business logic, IPFS, AI
+│   ├── utils/
+│   ├── .env.example
+│   └── package.json
+├── blockchain/               # Hardhat project
+│   ├── contracts/            # Solidity smart contracts
+│   ├── scripts/              # Deploy scripts
+│   ├── test/                 # Contract unit tests
+│   ├── hardhat.config.js
+│   └── package.json
+├── scripts/                  # Shell utility scripts
+├── docker/                   # Dockerfiles per service
+├── docs/                     # Architecture diagrams, API docs
+├── .github/workflows/        # CI/CD pipelines
+├── docker-compose.yml
+└── README.md
+```
 
 ---
 
-## Success Metrics
+## 🚀 Quick Start (Local)
 
-- 100% batch-level traceability  
-- Significant reduction in counterfeit incidents  
-- Faster recall execution time  
-- High adoption by pharmacies and hospitals  
-- Improved consumer trust and safety  
+### Prerequisites
+- Node.js >= 18
+- Docker & Docker Compose
+- MetaMask wallet
+- MongoDB (local or Atlas)
+- Pinata / Web3.Storage API key
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/manikantbindass/SecureRxChain-Blockchain-Based-Drug-Supply-Chain-Counterfeit-Medicine-Prevention-System.git
+cd SecureRxChain-Blockchain-Based-Drug-Supply-Chain-Counterfeit-Medicine-Prevention-System
+
+# Install all dependencies
+npm run install:all
+```
+
+### 2. Environment Variables
+
+```bash
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+cp blockchain/.env.example blockchain/.env
+# Fill in your values
+```
+
+### 3. Compile & Deploy Smart Contracts
+
+```bash
+cd blockchain
+npx hardhat compile
+npx hardhat run scripts/deploy.js --network localhost
+# Or for Polygon Mumbai:
+npx hardhat run scripts/deploy.js --network mumbai
+```
+
+### 4. Run with Docker Compose
+
+```bash
+docker-compose up --build
+```
+
+### 5. Run Manually
+
+```bash
+# Terminal 1 – Backend
+cd server && npm run dev
+
+# Terminal 2 – Frontend
+cd client && npm start
+
+# Terminal 3 – Local Hardhat node
+cd blockchain && npx hardhat node
+```
+
+Access:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000
+- Hardhat node: http://localhost:8545
 
 ---
 
-## Project Vision
+## 🔐 Roles
 
-To build a **national-scale digital trust infrastructure** that makes counterfeit medicines **traceable, detectable, and economically unviable**, while strengthening public health and regulatory oversight.
-
----
-
-## 📌 Future Enhancements
-
-- Strip-level traceability using GS1 standards  
-- Cross-border export compliance integration  
-- Advanced graph neural networks (GNNs) for anomaly detection  
-- Public blockchain anchoring for verifiable proof  
-- IoT-based cold-chain monitoring  
+| Role | Permissions |
+|------|-------------|
+| **Admin** | Register manufacturers, manage system |
+| **Manufacturer** | Create & mint drug batches |
+| **Distributor** | Accept & transfer batches |
+| **Retailer** | Receive and sell batches |
+| **Consumer** | Verify drug authenticity via QR |
 
 ---
 
-## Contributing
+## 📜 Smart Contracts
 
-Contributions are welcome!  
-Please open an issue or submit a pull request for improvements, bug fixes, or feature suggestions.
+| Contract | Description |
+|----------|-------------|
+| `DrugRegistry.sol` | Core batch lifecycle management |
+| `RoleManager.sol` | On-chain RBAC |
+| `QRVerifier.sol` | Hash-based QR authentication |
+| `AnomalyLogger.sol` | AI anomaly event logging |
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/your-feature`
+3. Commit changes: `git commit -m 'feat: add your feature'`
+4. Push to branch: `git push origin feature/your-feature`
+5. Open a Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License**.
-
----
-
-## Acknowledgements
-
-- Open-source blockchain and AI communities  
-- Public health and pharmaceutical supply chain research initiatives
-- gh repo clone manikantbindass/Blockchain-Based-Drug-Supply-Chain-Counterfeit-Medicine-Prevention-System
+MIT © [Manikant Bindass](https://github.com/manikantbindass)

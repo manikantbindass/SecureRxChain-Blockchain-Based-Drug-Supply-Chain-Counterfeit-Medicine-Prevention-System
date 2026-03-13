@@ -1,0 +1,75 @@
+version: '3.9'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: securerxchain-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS:-secret}
+      MONGO_INITDB_DATABASE: securerxchain
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - securerxchain-net
+
+  hardhat-node:
+    build:
+      context: ./blockchain
+      dockerfile: ../docker/Dockerfile.blockchain
+    container_name: securerxchain-hardhat
+    restart: unless-stopped
+    ports:
+      - "8545:8545"
+    networks:
+      - securerxchain-net
+
+  server:
+    build:
+      context: ./server
+      dockerfile: ../docker/Dockerfile.server
+    container_name: securerxchain-server
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    environment:
+      - MONGO_URI=mongodb://admin:secret@mongodb:27017/securerxchain?authSource=admin
+      - BLOCKCHAIN_RPC=http://hardhat-node:8545
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+      - hardhat-node
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    networks:
+      - securerxchain-net
+
+  client:
+    build:
+      context: ./client
+      dockerfile: ../docker/Dockerfile.client
+    container_name: securerxchain-client
+    restart: unless-stopped
+    env_file:
+      - ./client/.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    networks:
+      - securerxchain-net
+
+volumes:
+  mongo_data:
+
+networks:
+  securerxchain-net:
+    driver: bridge
