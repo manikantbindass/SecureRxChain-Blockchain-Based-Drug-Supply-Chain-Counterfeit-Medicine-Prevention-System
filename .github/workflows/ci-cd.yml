@@ -18,304 +18,159 @@ jobs:
     name: Install Dependencies
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        service: [server, client, blockchain, ai]
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v3
       
-      - name: Setup Node.js for ${{ matrix.service }}
-        if: matrix.service != 'ai'
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: ${{ matrix.service }}/package-lock.json
+          cache-dependency-path: 'frontend/package-lock.json'
       
-      - name: Setup Python for AI service
-        if: matrix.service == 'ai'
-        uses: actions/setup-python@v5
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-          cache-dependency-path: ai/requirements.txt
       
-      - name: Install Node.js dependencies
-        if: matrix.service != 'ai'
-        working-directory: ./${{ matrix.service }}
-        run: npm ci
-      
-      - name: Install Python dependencies
-        if: matrix.service == 'ai'
-        working-directory: ./ai
+      - name: Install Python Dependencies
+        working-directory: ./backend/counterfeit-detection
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
-      
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ matrix.service }}/node_modules
-            ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('{0}/**/package-lock.json', matrix.service), 'ai/requirements.txt') }}
-
-  # Job 2: Lint and Code Quality
-  code-quality:
-    name: Code Quality Checks
+  
+  # Job 2: Lint and Format Check
+  lint:
+    name: Lint and Format Check
     runs-on: ubuntu-latest
     needs: install-dependencies
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v3
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
       
-      - name: Lint backend code
-        working-directory: ./server
-        run: |
-          npm ci
-          npm run lint || echo "Linting skipped - no lint script"
-      
-      - name: Lint frontend code
-        working-directory: ./client
-        run: |
-          npm ci
-          npm run lint || echo "Linting skipped - no lint script"
-
-  # Job 3: Backend Tests
-  backend-tests:
-    name: Run Backend Tests
-    runs-on: ubuntu-latest
-    needs: install-dependencies
-    
-    services:
-      mongodb:
-        image: mongo:7.0
-        ports:
-          - 27017:27017
-        env:
-          MONGO_INITDB_ROOT_USERNAME: test
-          MONGO_INITDB_ROOT_PASSWORD: test
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      
-      - name: Install backend dependencies
-        working-directory: ./server
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
         run: npm ci
       
-      - name: Run backend unit tests
-        working-directory: ./server
-        env:
-          NODE_ENV: test
-          MONGODB_URI: mongodb://test:test@localhost:27017/securerxchain_test?authSource=admin
-          JWT_SECRET: test-secret-key
-          PORT: 5000
-        run: npm test || echo "No tests configured yet"
-      
-      - name: Generate test coverage
-        working-directory: ./server
-        run: npm run test:coverage || echo "Coverage not configured"
-
-  # Job 4: Smart Contract Tests
-  smart-contract-tests:
-    name: Run Smart Contract Tests
+      - name: Run ESLint
+        working-directory: ./frontend
+        run: npm run lint
+  
+  # Job 3: Run Tests
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
     needs: install-dependencies
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v3
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
       
-      - name: Install blockchain dependencies
-        working-directory: ./blockchain
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
         run: npm ci
       
-      - name: Compile smart contracts
-        working-directory: ./blockchain
-        run: npx hardhat compile
-      
-      - name: Run smart contract tests
-        working-directory: ./blockchain
-        env:
-          HARDHAT_NETWORK: hardhat
-        run: npx hardhat test
-      
-      - name: Generate coverage report
-        working-directory: ./blockchain
-        run: npx hardhat coverage || echo "Coverage not configured"
-
-  # Job 5: AI Service Tests
-  ai-service-tests:
-    name: Run AI Service Tests
-    runs-on: ubuntu-latest
-    needs: install-dependencies
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Run Frontend Tests
+        working-directory: ./frontend
+        run: npm test
       
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install Python Dependencies
+        working-directory: ./backend/counterfeit-detection
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run Python Tests
+        working-directory: ./backend/counterfeit-detection
+        run: pytest
+  
+  # Job 4: Build Frontend
+  build:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+      
+      - name: Install Dependencies
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: npm run build
+      
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: frontend/build
+  
+  # Job 5: Security Scan
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Run npm audit
+        working-directory: ./frontend
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       
-      - name: Install AI dependencies
-        working-directory: ./ai
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov
+      - name: Install Safety
+        run: pip install safety
       
-      - name: Run AI model tests
-        working-directory: ./ai
-        run: |
-          python -m pytest tests/ -v || echo "No AI tests configured yet"
-      
-      - name: Test risk prediction model
-        working-directory: ./ai
-        run: |
-          python risk_predictor.py
-
-  # Job 6: Build React Frontend
-  build-frontend:
-    name: Build React Frontend
-    runs-on: ubuntu-latest
-    needs: [code-quality, backend-tests, smart-contract-tests]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      
-      - name: Install client dependencies
-        working-directory: ./client
-        run: npm ci
-      
-      - name: Build React application
-        working-directory: ./client
-        env:
-          CI: false
-          REACT_APP_API_URL: ${{ secrets.API_URL }}
-          REACT_APP_BLOCKCHAIN_NETWORK: ${{ secrets.BLOCKCHAIN_NETWORK }}
-        run: npm run build
-      
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: client/build
-          retention-days: 7
-
-  # Job 7: Deploy Frontend to Vercel
-  deploy-frontend:
-    name: Deploy Frontend to Vercel
-    runs-on: ubuntu-latest
-    needs: build-frontend
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: client/build
-      
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ./client
-          vercel-args: '--prod'
-
-  # Job 8: Deploy Backend to Render
-  deploy-backend:
-    name: Deploy Backend to Render
-    runs-on: ubuntu-latest
-    needs: [backend-tests, smart-contract-tests]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Trigger Render deployment
-        env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-        run: |
-          curl -X POST $RENDER_DEPLOY_HOOK_URL
-      
-      - name: Wait for deployment
-        run: sleep 30
-      
-      - name: Health check
-        env:
-          BACKEND_URL: ${{ secrets.BACKEND_URL }}
-        run: |
-          curl -f $BACKEND_URL/health || exit 1
-
-  # Job 9: Deploy AI Service to Render
-  deploy-ai-service:
-    name: Deploy AI Service
-    runs-on: ubuntu-latest
-    needs: ai-service-tests
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy AI service to Render
-        env:
-          RENDER_AI_DEPLOY_HOOK_URL: ${{ secrets.RENDER_AI_DEPLOY_HOOK_URL }}
-        run: |
-          curl -X POST $RENDER_AI_DEPLOY_HOOK_URL
-      
-      - name: Health check AI service
-        env:
-          AI_SERVICE_URL: ${{ secrets.AI_SERVICE_URL }}
-        run: |
-          sleep 30
-          curl -f $AI_SERVICE_URL/health || exit 1
-
-  # Job 10: Notification on Success
-  notify-success:
-    name: Notify Deployment Success
-    runs-on: ubuntu-latest
-    needs: [deploy-frontend, deploy-backend, deploy-ai-service]
-    if: success()
-    
-    steps:
-      - name: Send success notification
-        run: |
-          echo "✅ SecureRxChain deployment successful!"
-          echo "Frontend: Deployed to Vercel"
-          echo "Backend: Deployed to Render"
-          echo "AI Service: Deployed to Render"
+      - name: Run Python Security Check
+        working-directory: ./backend/counterfeit-detection
+        run: safety check --file=requirements.txt
+        continue-on-error: true
