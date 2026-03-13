@@ -168,3 +168,6 @@ The pharmaceutical industry faces critical challenges:
 4. **AI Analysis**: Transfer Event → AI Service → Anomaly Score → Alert System
 
 ---
+
+
+<!-- Deployment trigger -->
