@@ -1,3 +1,5 @@
+// client/src/context/Web3Context.jsx
+// Wallet/Web3 context for MetaMask + ethers.js v6
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { ethers } from 'ethers';
 
@@ -20,30 +22,56 @@ export const Web3Provider = ({ children }) => {
     const web3Signer = await web3Provider.getSigner();
     const address = await web3Signer.getAddress();
     const network = await web3Provider.getNetwork();
-
     setProvider(web3Provider);
     setSigner(web3Signer);
     setAccount(address);
     setChainId(network.chainId.toString());
     setIsConnected(true);
-
-    window.ethereum.on('accountsChanged', (accounts) => {
-      setAccount(accounts[0] || null);
-      if (!accounts[0]) setIsConnected(false);
-    });
-    window.ethereum.on('chainChanged', () => window.location.reload());
+    return { provider: web3Provider, signer: web3Signer, address, chainId: network.chainId.toString() };
   }, []);
 
-  const disconnect = () => {
-    setProvider(null); setSigner(null); setAccount(null);
-    setChainId(null); setIsConnected(false);
-  };
+  const disconnect = useCallback(() => {
+    setProvider(null);
+    setSigner(null);
+    setAccount(null);
+    setChainId(null);
+    setIsConnected(false);
+  }, []);
 
-  return (
-    <Web3Context.Provider value={{ provider, signer, account, chainId, isConnected, connect, disconnect }}>
-      {children}
-    </Web3Context.Provider>
-  );
+  // Listen for account/chain changes
+  React.useEffect(() => {
+    if (!window.ethereum) return;
+    const handleAccountsChanged = (accounts) => {
+      if (accounts.length === 0) {
+        disconnect();
+      } else {
+        setAccount(accounts[0]);
+      }
+    };
+    const handleChainChanged = (id) => {
+      setChainId(parseInt(id, 16).toString());
+    };
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    window.ethereum.on('chainChanged', handleChainChanged);
+    return () => {
+      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      window.ethereum.removeListener('chainChanged', handleChainChanged);
+    };
+  }, [disconnect]);
+
+  const value = { provider, signer, account, chainId, isConnected, connect, disconnect };
+
+  return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;
 };
 
-export const useWeb3 = () => useContext(Web3Context);
+export const useWeb3 = () => {
+  const ctx = useContext(Web3Context);
+  if (!ctx) throw new Error('useWeb3 must be used within Web3Provider');
+  return ctx;
+};
+
+// Aliases for backward compatibility
+export const WalletProvider = Web3Provider;
+export const useWallet = useWeb3;
+
+export default Web3Context;
