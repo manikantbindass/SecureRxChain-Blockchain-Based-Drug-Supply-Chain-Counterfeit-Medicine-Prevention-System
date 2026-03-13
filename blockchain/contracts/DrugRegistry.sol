@@ -2,158 +2,261 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./RoleManager.sol";
+import "./AccessControl.sol";
 
 /**
  * @title DrugRegistry
- * @dev Core contract for drug batch lifecycle management
+ * @dev Registers drug batches on-chain with full metadata.
+ *      Stores batchId, drugName, manufacturer, dates, quantity.
+ *      Emits events for every registration and ownership change.
  */
 contract DrugRegistry is ReentrancyGuard {
-    RoleManager public roleManager;
 
-    enum BatchStatus { Created, InTransit, Delivered, Sold, Recalled }
+    SecureRxAccessControl public accessControl;
 
+    // ─── Structs ─────────────────────────────────────────────────────────────────
     struct DrugBatch {
-        bytes32 batchId;
-        string drugName;
-        string manufacturer;
-        uint256 manufactureDate;
-        uint256 expiryDate;
-        uint256 quantity;
-        string ipfsDocHash;     // IPFS CID of regulatory docs
-        bytes32 qrCodeHash;     // keccak256 of QR payload
-        BatchStatus status;
-        address currentHolder;
-        address[] transferHistory;
-        uint256 createdAt;
-        bool isCounterfeit;
+        bytes32   batchId;
+        string    drugName;
+        string    genericName;
+        string    dosageForm;          // tablet, capsule, injection, etc.
+        string    strength;            // e.g. "500mg"
+        address   manufacturer;        // wallet address of manufacturer
+        string    manufacturerName;
+        uint256   manufacturingDate;
+        uint256   expiryDate;
+        uint256   quantity;            // units
+        string    ipfsCID;             // IPFS CID for regulatory docs
+        bytes32   qrCodeHash;          // keccak256 of QR payload
+        address   currentOwner;
+        bool      isRecalled;
+        bool      isCounterfeit;
+        uint256   registeredAt;
     }
 
-    mapping(bytes32 => DrugBatch) public batches;
-    mapping(address => bytes32[]) public holderBatches;
-    bytes32[] public allBatchIds;
+    struct OwnershipRecord {
+        address  owner;
+        uint256  timestamp;
+        string   action;              // "REGISTERED", "TRANSFERRED", "RECALLED"
+    }
 
-    event BatchCreated(bytes32 indexed batchId, string drugName, address indexed manufacturer, uint256 timestamp);
-    event BatchTransferred(bytes32 indexed batchId, address indexed from, address indexed to, uint256 timestamp);
-    event BatchRecalled(bytes32 indexed batchId, string reason, uint256 timestamp);
-    event CounterfeitFlagged(bytes32 indexed batchId, address indexed reporter, uint256 timestamp);
+    // ─── Storage ─────────────────────────────────────────────────────────────────
+    mapping(bytes32 => DrugBatch)           public batches;
+    mapping(bytes32 => OwnershipRecord[])   public ownershipHistory;
+    mapping(address => bytes32[])           public manufacturerBatches;
+    mapping(address => bytes32[])           public ownerBatches;
+    bytes32[]                               public allBatchIds;
 
+    // ─── Events ──────────────────────────────────────────────────────────────────
+    event BatchRegistered(
+        bytes32 indexed batchId,
+        string  drugName,
+        address indexed manufacturer,
+        uint256 quantity,
+        uint256 expiryDate,
+        uint256 timestamp
+    );
+    event OwnershipTransferred(
+        bytes32 indexed batchId,
+        address indexed from,
+        address indexed to,
+        uint256 timestamp
+    );
+    event BatchRecalled(
+        bytes32 indexed batchId,
+        address indexed recalledBy,
+        string  reason,
+        uint256 timestamp
+    );
+    event CounterfeitFlagged(
+        bytes32 indexed batchId,
+        address indexed flaggedBy,
+        uint256 timestamp
+    );
+
+    // ─── Modifiers ───────────────────────────────────────────────────────────────
     modifier onlyManufacturer() {
-        require(roleManager.isManufacturer(msg.sender), "DrugRegistry: caller is not a manufacturer");
+        require(
+            accessControl.isManufacturer(msg.sender),
+            "DrugRegistry: caller is not a registered manufacturer"
+        );
+        _;
+    }
+
+    modifier onlyAdmin() {
+        require(
+            accessControl.isAdmin(msg.sender),
+            "DrugRegistry: caller is not admin"
+        );
         _;
     }
 
     modifier batchExists(bytes32 batchId) {
-        require(batches[batchId].createdAt != 0, "DrugRegistry: batch does not exist");
+        require(batches[batchId].registeredAt != 0, "DrugRegistry: batch does not exist");
         _;
     }
 
-    constructor(address _roleManager) {
-        roleManager = RoleManager(_roleManager);
+    modifier notRecalled(bytes32 batchId) {
+        require(!batches[batchId].isRecalled, "DrugRegistry: batch has been recalled");
+        _;
     }
 
-    function createBatch(
-        string calldata drugName,
-        uint256 expiryDate,
-        uint256 quantity,
-        string calldata ipfsDocHash,
-        bytes32 qrCodeHash
-    ) external onlyManufacturer nonReentrant returns (bytes32) {
-        bytes32 batchId = keccak256(
-            abi.encodePacked(msg.sender, drugName, block.timestamp, quantity)
+    // ─── Constructor ─────────────────────────────────────────────────────────────
+    constructor(address _accessControl) {
+        accessControl = SecureRxAccessControl(_accessControl);
+    }
+
+    // ─── Core Functions ──────────────────────────────────────────────────────────
+
+    /**
+     * @dev Register a new drug batch on-chain.
+     * @return batchId The unique keccak256 identifier for this batch
+     */
+    function registerBatch(
+        string  calldata drugName,
+        string  calldata genericName,
+        string  calldata dosageForm,
+        string  calldata strength,
+        string  calldata manufacturerName,
+        uint256          manufacturingDate,
+        uint256          expiryDate,
+        uint256          quantity,
+        string  calldata ipfsCID,
+        bytes32          qrCodeHash
+    ) external onlyManufacturer nonReentrant returns (bytes32 batchId) {
+        require(expiryDate > block.timestamp,    "DrugRegistry: expiry date must be in the future");
+        require(expiryDate > manufacturingDate,  "DrugRegistry: expiry must be after manufacturing date");
+        require(quantity > 0,                    "DrugRegistry: quantity must be > 0");
+        require(bytes(drugName).length > 0,      "DrugRegistry: drug name cannot be empty");
+
+        batchId = keccak256(
+            abi.encodePacked(
+                msg.sender,
+                drugName,
+                manufacturingDate,
+                quantity,
+                block.timestamp,
+                block.number
+            )
         );
 
-        DrugBatch storage batch = batches[batchId];
-        batch.batchId = batchId;
-        batch.drugName = drugName;
-        batch.manufacturer = addressToString(msg.sender);
-        batch.manufactureDate = block.timestamp;
-        batch.expiryDate = expiryDate;
-        batch.quantity = quantity;
-        batch.ipfsDocHash = ipfsDocHash;
-        batch.qrCodeHash = qrCodeHash;
-        batch.status = BatchStatus.Created;
-        batch.currentHolder = msg.sender;
-        batch.createdAt = block.timestamp;
-        batch.transferHistory.push(msg.sender);
+        require(batches[batchId].registeredAt == 0, "DrugRegistry: batch ID collision");
 
-        holderBatches[msg.sender].push(batchId);
+        batches[batchId] = DrugBatch({
+            batchId:          batchId,
+            drugName:         drugName,
+            genericName:      genericName,
+            dosageForm:       dosageForm,
+            strength:         strength,
+            manufacturer:     msg.sender,
+            manufacturerName: manufacturerName,
+            manufacturingDate: manufacturingDate,
+            expiryDate:       expiryDate,
+            quantity:         quantity,
+            ipfsCID:          ipfsCID,
+            qrCodeHash:       qrCodeHash,
+            currentOwner:     msg.sender,
+            isRecalled:       false,
+            isCounterfeit:    false,
+            registeredAt:     block.timestamp
+        });
+
+        ownershipHistory[batchId].push(OwnershipRecord({
+            owner:     msg.sender,
+            timestamp: block.timestamp,
+            action:    "REGISTERED"
+        }));
+
+        manufacturerBatches[msg.sender].push(batchId);
+        ownerBatches[msg.sender].push(batchId);
         allBatchIds.push(batchId);
 
-        emit BatchCreated(batchId, drugName, msg.sender, block.timestamp);
+        emit BatchRegistered(batchId, drugName, msg.sender, quantity, expiryDate, block.timestamp);
         return batchId;
     }
 
-    function transferBatch(
+    /**
+     * @dev Transfer ownership of a batch to a new address.
+     */
+    function transferOwnership(
         bytes32 batchId,
-        address to
-    ) external batchExists(batchId) nonReentrant {
+        address newOwner,
+        string calldata action
+    ) external batchExists(batchId) notRecalled(batchId) nonReentrant {
         DrugBatch storage batch = batches[batchId];
-        require(batch.currentHolder == msg.sender, "DrugRegistry: not current holder");
-        require(batch.status != BatchStatus.Recalled, "DrugRegistry: batch is recalled");
-        require(!batch.isCounterfeit, "DrugRegistry: batch flagged as counterfeit");
+        require(batch.currentOwner == msg.sender, "DrugRegistry: caller is not current owner");
+        require(newOwner != address(0),           "DrugRegistry: new owner is zero address");
+        require(!batch.isCounterfeit,             "DrugRegistry: cannot transfer counterfeit batch");
 
-        address from = batch.currentHolder;
-        batch.currentHolder = to;
-        batch.status = BatchStatus.InTransit;
-        batch.transferHistory.push(to);
-        holderBatches[to].push(batchId);
+        address previousOwner = batch.currentOwner;
+        batch.currentOwner = newOwner;
 
-        emit BatchTransferred(batchId, from, to, block.timestamp);
+        ownershipHistory[batchId].push(OwnershipRecord({
+            owner:     newOwner,
+            timestamp: block.timestamp,
+            action:    action
+        }));
+
+        ownerBatches[newOwner].push(batchId);
+
+        emit OwnershipTransferred(batchId, previousOwner, newOwner, block.timestamp);
     }
 
-    function verifyBatch(bytes32 batchId, bytes32 qrHash)
-        external view batchExists(batchId)
-        returns (bool isAuthentic, BatchStatus status, bool isExpired)
+    /**
+     * @dev Recall a drug batch — marks it as recalled, blocks transfers.
+     */
+    function recallBatch(bytes32 batchId, string calldata reason)
+        external onlyAdmin batchExists(batchId)
     {
-        DrugBatch storage batch = batches[batchId];
-        isAuthentic = (batch.qrCodeHash == qrHash) && !batch.isCounterfeit;
-        status = batch.status;
-        isExpired = block.timestamp > batch.expiryDate;
+        batches[batchId].isRecalled = true;
+        ownershipHistory[batchId].push(OwnershipRecord({
+            owner:     msg.sender,
+            timestamp: block.timestamp,
+            action:    string(abi.encodePacked("RECALLED: ", reason))
+        }));
+        emit BatchRecalled(batchId, msg.sender, reason, block.timestamp);
     }
 
-    function flagCounterfeit(bytes32 batchId) external batchExists(batchId) {
-        require(
-            roleManager.hasRole(roleManager.REGULATOR_ROLE(), msg.sender) ||
-            roleManager.hasRole(roleManager.ADMIN_ROLE(), msg.sender),
-            "DrugRegistry: unauthorized"
-        );
+    /**
+     * @dev Flag a batch as counterfeit.
+     */
+    function flagCounterfeit(bytes32 batchId)
+        external onlyAdmin batchExists(batchId)
+    {
         batches[batchId].isCounterfeit = true;
         emit CounterfeitFlagged(batchId, msg.sender, block.timestamp);
     }
 
-    function recallBatch(bytes32 batchId, string calldata reason)
-        external batchExists(batchId)
+    // ─── View Functions ──────────────────────────────────────────────────────────
+
+    function getBatch(bytes32 batchId)
+        external view batchExists(batchId)
+        returns (DrugBatch memory)
     {
-        require(
-            roleManager.hasRole(roleManager.REGULATOR_ROLE(), msg.sender) ||
-            roleManager.hasRole(roleManager.ADMIN_ROLE(), msg.sender),
-            "DrugRegistry: unauthorized"
-        );
-        batches[batchId].status = BatchStatus.Recalled;
-        emit BatchRecalled(batchId, reason, block.timestamp);
+        return batches[batchId];
     }
 
-    function getBatchHistory(bytes32 batchId)
+    function getOwnershipHistory(bytes32 batchId)
         external view batchExists(batchId)
-        returns (address[] memory)
+        returns (OwnershipRecord[] memory)
     {
-        return batches[batchId].transferHistory;
+        return ownershipHistory[batchId];
+    }
+
+    function getManufacturerBatches(address manufacturer)
+        external view returns (bytes32[] memory)
+    {
+        return manufacturerBatches[manufacturer];
+    }
+
+    function isExpired(bytes32 batchId)
+        external view batchExists(batchId)
+        returns (bool)
+    {
+        return block.timestamp > batches[batchId].expiryDate;
     }
 
     function getTotalBatches() external view returns (uint256) {
         return allBatchIds.length;
-    }
-
-    function addressToString(address addr) internal pure returns (string memory) {
-        bytes32 value = bytes32(uint256(uint160(addr)));
-        bytes memory alphabet = "0123456789abcdef";
-        bytes memory str = new bytes(42);
-        str[0] = '0'; str[1] = 'x';
-        for (uint256 i = 0; i < 20; i++) {
-            str[2 + i * 2] = alphabet[uint8(value[i + 12] >> 4)];
-            str[3 + i * 2] = alphabet[uint8(value[i + 12] & 0x0f)];
-        }
-        return string(str);
     }
 }
