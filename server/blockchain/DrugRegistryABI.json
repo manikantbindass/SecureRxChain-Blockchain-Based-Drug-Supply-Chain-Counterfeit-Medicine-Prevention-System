@@ -1,0 +1,66 @@
+[
+  {
+    "inputs": [
+      { "internalType": "string", "name": "batchId", "type": "string" },
+      { "internalType": "string", "name": "ipfsHash", "type": "string" },
+      { "internalType": "uint256", "name": "expiryDate", "type": "uint256" }
+    ],
+    "name": "registerDrug",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "batchId", "type": "string" },
+      { "internalType": "address", "name": "newOwner", "type": "address" }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "batchId", "type": "string" }
+    ],
+    "name": "quarantineDrug",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "batchId", "type": "string" }
+    ],
+    "name": "getDrug",
+    "outputs": [
+      { "internalType": "string", "name": "ipfsHash", "type": "string" },
+      { "internalType": "address", "name": "currentOwner", "type": "address" },
+      { "internalType": "bool", "name": "isQuarantined", "type": "bool" },
+      { "internalType": "uint256", "name": "expiryDate", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "batchId", "type": "string" }
+    ],
+    "name": "getTransferHistory",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "from", "type": "address" },
+          { "internalType": "address", "name": "to", "type": "address" },
+          { "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+        ],
+        "internalType": "struct DrugRegistry.Transfer[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
