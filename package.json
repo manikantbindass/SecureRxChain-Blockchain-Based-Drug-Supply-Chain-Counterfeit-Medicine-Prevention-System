@@ -1,0 +1,25 @@
+{
+  "name": "securerxchain",
+  "version": "1.0.0",
+  "description": "Blockchain-Based Drug Supply Chain & Counterfeit Medicine Prevention System",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm install --prefix client && npm install --prefix server && npm install --prefix blockchain",
+    "dev:client": "npm start --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "dev:blockchain": "npx hardhat node --config blockchain/hardhat.config.js",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "test:contracts": "npm test --prefix blockchain",
+    "test:server": "npm test --prefix server",
+    "test": "npm run test:contracts && npm run test:server",
+    "build:client": "npm run build --prefix client",
+    "docker:up": "docker-compose up --build",
+    "docker:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

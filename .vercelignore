@@ -1,0 +1,16 @@
+# Ignore CI/CD files
+.github/
+
+# Ignore documentation
+README.md
+SETUP.md
+
+# Ignore backend and blockchain
+backend/
+blockchain/
+server/
+
+# Ignore Docker files
+docker/
+docker-compose.yml
+Dockerfile
