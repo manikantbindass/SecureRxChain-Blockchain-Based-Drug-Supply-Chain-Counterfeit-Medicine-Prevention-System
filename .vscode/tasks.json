@@ -1,0 +1,59 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "docker-build",
+			"label": "docker-build",
+			"platform": "node",
+			"dockerBuild": {
+				"dockerfile": "${workspaceFolder}/frontend/node_modules/acorn-jsx/Dockerfile",
+				"context": "${workspaceFolder}/frontend/node_modules/acorn-jsx",
+				"pull": true
+			},
+			"node": {
+				"package": "${workspaceFolder}/frontend/node_modules/acorn-jsx/package.json"
+			}
+		},
+		{
+			"type": "docker-run",
+			"label": "docker-run: release",
+			"dependsOn": [
+				"docker-build"
+			],
+			"platform": "node",
+			"node": {
+				"package": "${workspaceFolder}/frontend/node_modules/acorn-jsx/package.json"
+			}
+		},
+		{
+			"type": "docker-run",
+			"label": "docker-run: debug",
+			"dependsOn": [
+				"docker-build"
+			],
+			"dockerRun": {
+				"env": {
+					"DEBUG": "*",
+					"NODE_ENV": "development"
+				}
+			},
+			"node": {
+				"package": "${workspaceFolder}/frontend/node_modules/acorn-jsx/package.json",
+				"enableDebugging": true
+			}
+		},
+		{
+			"type": "go",
+			"label": "go: build package",
+			"command": "build",
+			"args": [
+				"${fileDirname}"
+			],
+			"problemMatcher": [
+				"$go"
+			],
+			"group": "build",
+			"detail": "cd d:\\Runtime Terror\\SecureRx; go build ${fileDirname}"
+		}
+	]
+}
