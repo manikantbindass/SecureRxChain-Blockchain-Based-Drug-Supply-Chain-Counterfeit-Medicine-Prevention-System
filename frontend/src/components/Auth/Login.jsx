@@ -121,7 +121,7 @@ const Login = () => {
             SecureRxChain
           </Typography>
           <Typography variant="subtitle1" color="textSecondary" mt={1}>
-            Welcome back to the secure supply chain
+            Welcome to the secure supply chain. Make Sure you're getting the authentic one!!
           </Typography>
         </Box>
 
