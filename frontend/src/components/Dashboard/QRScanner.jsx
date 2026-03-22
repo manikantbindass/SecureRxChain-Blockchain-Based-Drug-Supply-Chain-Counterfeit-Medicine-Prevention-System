@@ -24,7 +24,7 @@ const QRScanner = () => {
             navigate(`/verify/${result}`);
         }
       },
-      (error) => {
+      () => {
         // console.warn(error);
       }
     );
