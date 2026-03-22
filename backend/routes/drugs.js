@@ -5,6 +5,7 @@ const { verifyToken, authorizeRoles } = require('../middleware/authMiddleware');
 const DrugMetadata = require('../models/DrugMetadata');
 const User = require('../models/User');
 const { getUserContract, getReadOnlyContract } = require('../blockchain/web3');
+const axios = require('axios');
 
 // Generate QR Code mapping to verification URL
 const generateQR = async (batchId) => {
@@ -108,17 +109,30 @@ router.get('/verify/:batchId', async (req, res) => {
             return user ? { address, name: user.name, role: user.role } : { address, name: 'Unknown' };
         }));
 
-        // Simulated AI Risk model
+        // Call true Python AI Microservice
         let riskScore = 0;
-        if (history.length > 5) riskScore += 30; // Too many hops
-        if (Number(drugDetails.quantity) > 10000) riskScore += 20; // Unusually large batch
-        riskScore += Math.floor(Math.random() * 10); // Random noise
-        riskScore = Math.min(riskScore, 100);
+        let aiClassification = "Authentic";
+        try {
+            const aiPayload = {
+                currentState: Number(drugDetails.state),
+                events: history.map((addr, idx) => ({ address: addr, step: idx })),
+                quantity: Number(drugDetails.quantity)
+            };
+            const aiResponse = await axios.post('http://localhost:5002/predict-risk', aiPayload, { timeout: 3000 });
+            riskScore = aiResponse.data.risk_score;
+            aiClassification = aiResponse.data.classification;
+        } catch (aiError) {
+            console.error("AI Service Offline, falling back to basic analysis:", aiError.message);
+            if (history.length > 5) riskScore += 30; 
+            if (Number(drugDetails.quantity) > 10000) riskScore += 20;
+            riskScore = Math.min(riskScore, 100);
+        }
 
         res.json({
             success: true,
             isAuthentic,
             aiRiskScore: riskScore,
+            aiClassification: aiClassification,
             onChainData: {
                 drugName: drugDetails.drugName,
                 manufacturer: drugDetails.manufacturer,
