@@ -1,0 +1,63 @@
+name: SecureRxChain CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  blockchain-test:
+    name: 🔗 Smart Contract Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: blockchain
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install Dependencies
+        run: npm install
+      - name: Compile Contracts
+        run: npm run compile
+      - name: Run Contract Tests
+        run: npm test --if-present
+
+  frontend-build:
+    name: ⚛️ Frontend Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install Dependencies
+        run: npm install
+      - name: Lint Frontend
+        run: npm run lint --if-present
+      - name: Build Frontend
+        run: npm run build
+
+  backend-build:
+    name: 🖥️ Backend Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install Dependencies
+        run: npm install
+      - name: Run Tests
+        run: npm test --if-present
