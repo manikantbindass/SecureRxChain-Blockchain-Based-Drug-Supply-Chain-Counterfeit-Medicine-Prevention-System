@@ -1,0 +1,39 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+!.env.example
+
+# Build outputs
+client/build/
+blockchain/artifacts/
+blockchain/cache/
+blockchain/deployments/*.json
+
+# Logs
+logs/
+*.log
+
+# Docker
+.docker/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Hardhat
+blockchain/typechain-types/
