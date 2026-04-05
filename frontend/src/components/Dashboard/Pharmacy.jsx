@@ -14,22 +14,34 @@ const fadeInUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: easeOut } }
 };
 
+import { Web3Context } from '../../context/Web3Context';
+import { useContext } from 'react';
+
 const Pharmacy = () => {
   const [batchId, setBatchId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const { contract, account, connectWallet } = useContext(Web3Context);
 
   const handleSell = async (e) => {
     e.preventDefault();
+    if (!account) { setError('Please connect MetaMask first'); return; }
+    if (!contract) { setError('Smart contract not loaded'); return; }
+
     setLoading(true);
     setError('');
     setSuccess('');
     try {
-      const res = await api.post('/drugs/sell', { batchId });
-      setSuccess(`Drug Sold! Tx Hash: ${res.data.txHash}`);
+      const tx = await contract.sellDrug(batchId);
+      await tx.wait();
+
+      // Sync backend
+      const res = await api.post('/drugs/sell', { batchId, txHash: tx.hash });
+      setSuccess(`Drug Sold! Tx Hash: ${tx.hash}`);
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to sell drug');
+      console.error(err);
+      setError(err.reason || err.message || 'Failed to sell drug on blockchain');
     } finally {
       setLoading(false);
     }

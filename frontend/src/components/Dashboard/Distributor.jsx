@@ -14,23 +14,34 @@ const fadeInUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: easeOut } }
 };
 
+import { Web3Context } from '../../context/Web3Context';
+import { useContext } from 'react';
+
 const Distributor = () => {
   const [formData, setFormData] = useState({ batchId: '', toAddress: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const { contract, account } = useContext(Web3Context);
 
   const handleTransfer = async (e) => {
     e.preventDefault();
+    if (!account) { setError('Please connect MetaMask first'); return; }
+    if (!contract) { setError('Smart contract not loaded'); return; }
+
     setLoading(true);
     setError('');
     setSuccess('');
     try {
-      const payload = { ...formData, newState: 2 }; // 2 = Distributed
+      const tx = await contract.transferDrug(formData.batchId, formData.toAddress);
+      await tx.wait();
+
+      const payload = { ...formData, newState: 2, txHash: tx.hash }; // 2 = Distributed
       const res = await api.post('/drugs/transfer', payload);
-      setSuccess(`Transfer Successful! Tx Hash: ${res.data.txHash}`);
+      setSuccess(`Transfer Successful! Tx Hash: ${tx.hash}`);
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to transfer drug');
+      console.error(err);
+      setError(err.reason || err.message || 'Failed to transfer drug on blockchain');
     } finally {
       setLoading(false);
     }

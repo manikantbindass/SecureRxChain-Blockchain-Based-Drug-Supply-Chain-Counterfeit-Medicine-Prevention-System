@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { Web3Provider } from './context/Web3Context';
 import Navbar from './components/Shared/Navbar';
 import Layout from './components/Shared/Layout';
 import Login from './components/Auth/Login';
@@ -12,8 +13,9 @@ import QRScanner from './components/Dashboard/QRScanner';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Web3Provider>
+      <AuthProvider>
+        <Router>
         <Navbar />
         <Layout>
           <Routes>
@@ -27,8 +29,9 @@ function App() {
             <Route path="/" element={<Navigate to="/login" />} />
           </Routes>
         </Layout>
-      </Router>
-    </AuthProvider>
+        </Router>
+      </AuthProvider>
+    </Web3Provider>
   );
 }
 

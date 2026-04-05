@@ -19,6 +19,9 @@ const staggerContainer = {
   visible: { transition: { staggerChildren: 0.1, delayChildren: 0.1 } }
 };
 
+import { Web3Context } from '../../context/Web3Context';
+import { useContext } from 'react';
+
 const Manufacturer = () => {
   const [formData, setFormData] = useState({
     batchId: '', drugName: '', manufacturingDate: '', expiryDate: '', quantity: '', description: ''
@@ -33,21 +36,35 @@ const Manufacturer = () => {
   const [errorTransfer, setErrorTransfer] = useState('');
   const [successTransfer, setSuccessTransfer] = useState('');
 
+  const { contract, account } = useContext(Web3Context);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!account) { setError('Please connect MetaMask first'); return; }
+    if (!contract) { setError('Smart contract not loaded'); return; }
+
     setLoading(true);
     setError('');
     setSuccess('');
     try {
-      const payload = {
-        ...formData,
-        quantity: Number(formData.quantity)
-      };
+      const q = Number(formData.quantity);
+      // Execute transaction on Blockchain via MetaMask
+      const tx = await contract.registerDrug(
+        formData.batchId,
+        formData.drugName,
+        formData.manufacturingDate,
+        formData.expiryDate,
+        q
+      );
+      await tx.wait();
+
+      const payload = { ...formData, quantity: q, txHash: tx.hash };
       const res = await api.post('/drugs/register', payload);
-      setSuccess(`Drug Registered! Tx Hash: ${res.data.txHash}`);
+      setSuccess(`Drug Registered! Tx Hash: ${tx.hash}`);
       setQrCode(res.data.qrImage);
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to register drug');
+      console.error(err);
+      setError(err.reason || err.message || 'Failed to register drug on blockchain');
     } finally {
       setLoading(false);
     }
@@ -55,15 +72,22 @@ const Manufacturer = () => {
 
   const handleTransfer = async (e) => {
     e.preventDefault();
+    if (!account) { setErrorTransfer('Please connect MetaMask first'); return; }
+    if (!contract) { setErrorTransfer('Smart contract not loaded'); return; }
+
     setLoadingTransfer(true);
     setErrorTransfer('');
     setSuccessTransfer('');
     try {
-      const payload = { ...transferData, newState: 1 }; // 1 = InTransit
+      const tx = await contract.transferDrug(transferData.batchId, transferData.toAddress);
+      await tx.wait();
+
+      const payload = { ...transferData, newState: 1, txHash: tx.hash }; // 1 = InTransit
       const res = await api.post('/drugs/transfer', payload);
-      setSuccessTransfer(`Transfer Successful! Tx Hash: ${res.data.txHash}`);
+      setSuccessTransfer(`Transfer Successful! Tx Hash: ${tx.hash}`);
     } catch (err) {
-      setErrorTransfer(err.response?.data?.msg || 'Failed to transfer drug');
+      console.error(err);
+      setErrorTransfer(err.reason || err.message || 'Failed to transfer drug on blockchain');
     } finally {
       setLoadingTransfer(false);
     }

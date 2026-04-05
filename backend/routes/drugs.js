@@ -17,31 +17,20 @@ const generateQR = async (batchId) => {
 // @desc    Register new drug batch on blockchain
 // @access  Private (Manufacturer)
 router.post('/register', verifyToken, authorizeRoles('manufacturer'), async (req, res) => {
-    const { batchId, drugName, manufacturingDate, expiryDate, quantity, description, ingredients, imageURL } = req.body;
+    const { batchId, drugName, description, ingredients, imageURL, txHash } = req.body;
     try {
-        const user = await User.findById(req.user.id);
-        const contract = getUserContract(user.privateKey);
-
-        // 1. Send transaction to blockchain
-        const tx = await contract.registerDrug(
-            batchId, 
-            drugName, 
-            Math.floor(new Date(manufacturingDate).getTime() / 1000), 
-            Math.floor(new Date(expiryDate).getTime() / 1000), 
-            quantity
-        );
-        await tx.wait(); // Wait for confirmation
-
-        // 2. Save off-chain metadata to MongoDB
+        // 1. Transaction was already executed on frontend via MetaMask!
+        // We just need to save the off-chain metadata to MongoDB.
+        
         const newMetadata = new DrugMetadata({
             batchId, name: drugName, description, ingredients, imageURL
         });
         await newMetadata.save();
 
-        // 3. Generate QR Code
+        // 2. Generate QR Code
         const qrImage = await generateQR(batchId);
 
-        res.status(201).json({ success: true, txHash: tx.hash, qrImage, batchId });
+        res.status(201).json({ success: true, txHash, qrImage, batchId });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, msg: err.message });
@@ -49,18 +38,13 @@ router.post('/register', verifyToken, authorizeRoles('manufacturer'), async (req
 });
 
 // @route   POST /api/drugs/transfer
-// @desc    Transfer drug ownership
+// @desc    Transfer drug ownership (Legacy route wrapper for frontend logging)
 // @access  Private (Manufacturer, Distributor)
 router.post('/transfer', verifyToken, authorizeRoles('manufacturer', 'distributor'), async (req, res) => {
-    const { batchId, toAddress, newState } = req.body;
+    const { txHash } = req.body;
     try {
-        const user = await User.findById(req.user.id);
-        const contract = getUserContract(user.privateKey);
-
-        const tx = await contract.transferDrug(batchId, toAddress, newState);
-        await tx.wait();
-
-        res.json({ success: true, txHash: tx.hash });
+        // Transaction executed on frontend. We can log it or just return OK.
+        res.json({ success: true, txHash });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, msg: err.message });
@@ -68,18 +52,13 @@ router.post('/transfer', verifyToken, authorizeRoles('manufacturer', 'distributo
 });
 
 // @route   POST /api/drugs/sell
-// @desc    Sell drug to consumer (Pharmacy only)
+// @desc    Sell drug to consumer (Legacy route wrapper for frontend logging)
 // @access  Private (Pharmacy)
 router.post('/sell', verifyToken, authorizeRoles('pharmacy'), async (req, res) => {
-    const { batchId } = req.body;
+    const { txHash } = req.body;
     try {
-        const user = await User.findById(req.user.id);
-        const contract = getUserContract(user.privateKey);
-
-        const tx = await contract.sellDrug(batchId);
-        await tx.wait();
-
-        res.json({ success: true, txHash: tx.hash });
+        // Transaction executed on frontend. We can log it or just return OK.
+        res.json({ success: true, txHash });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, msg: err.message });

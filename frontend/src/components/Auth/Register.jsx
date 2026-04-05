@@ -1,7 +1,8 @@
 import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { Mail, Lock, User, Briefcase, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Web3Context } from '../../context/Web3Context';
+import { Mail, Lock, User, Briefcase, Eye, EyeOff, ShieldCheck, ArrowRight, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -25,18 +26,20 @@ const Register = () => {
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'consumer' });
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const { account, connectWallet } = useContext(Web3Context);
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!account && formData.role !== 'consumer') {
+      setError('Please connect your MetaMask wallet first to register as a business role.');
+      return;
+    }
+    
     try {
-      let assignedKey = "";
-      if (formData.role === 'manufacturer') assignedKey = TEST_ACCOUNTS[1];
-      else if (formData.role === 'distributor') assignedKey = TEST_ACCOUNTS[2];
-      else if (formData.role === 'pharmacy') assignedKey = TEST_ACCOUNTS[3];
-      
-      const payload = { ...formData, privateKey: assignedKey };
+      // The backend gets the walletAddress. We no longer send hidden private keys over the wire!
+      const payload = { ...formData, walletAddress: account || '' };
       const data = await register(payload);
       navigate(`/${data.user.role}`);
     } catch (err) {
@@ -134,6 +137,24 @@ const Register = () => {
                 <option value="pharmacy">Pharmacy</option>
               </select>
             </div>
+
+            {formData.role !== 'consumer' && !account && (
+              <div className="bg-accent/5 border border-accent/20 rounded-xl p-4 flex flex-col items-center justify-center gap-3">
+                <p className="text-sm text-center text-muted-foreground">
+                  Business roles require a blockchain identity. 
+                </p>
+                <Button type="button" variant="outline" onClick={connectWallet} className="w-full gap-2 border-accent text-accent">
+                  <Wallet size={16} /> 
+                  Connect MetaMask
+                </Button>
+              </div>
+            )}
+            {formData.role !== 'consumer' && account && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 flex items-center gap-3">
+                <ShieldCheck className="text-green-500 w-5 h-5" />
+                <p className="text-sm font-mono text-green-700">Wallet Linked: {account.substring(0,6)}...{account.slice(-4)}</p>
+              </div>
+            )}
 
             <Button type="submit" variant="primary" className="w-full mt-6 group">
               Register Account

@@ -32,7 +32,7 @@ router.post('/register', async (req, res) => {
 
     await user.save();
 
-    if (privateKey && finalWalletAddress) {
+    if (finalWalletAddress) {
       try {
         const adminContract = getAdminContract();
         let roleBytes;

@@ -1,12 +1,15 @@
 import { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { Web3Context } from '../../context/Web3Context';
 import { ShieldCheck, LogOut, User } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
 import { cn } from '../../utils/utils';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
+  const { account, connectWallet } = useContext(Web3Context);
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
 
@@ -44,18 +47,29 @@ const Navbar = () => {
         <div className="flex items-center gap-4">
           {user ? (
             <div className="flex items-center gap-4">
-              <div className="hidden md:flex flex-col items-end">
+              {/* Web3 Wallet Section */}
+              <div className="flex items-center">
+                {account ? (
+                  <Badge variant="outline" className="border-accent/40 bg-accent/10 px-3 py-1 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-accent animate-pulse-slow"></span>
+                    <span className="font-mono text-accent">
+                      {account.substring(0, 6)}...{account.substring(account.length - 4)}
+                    </span>
+                  </Badge>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={connectWallet} className="border-accent text-accent hover:bg-accent hover:text-white">
+                    Connect MetaMask
+                  </Button>
+                )}
+              </div>
+
+              <div className="hidden md:flex flex-col items-end border-l border-border pl-4">
                 <span className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <User size={14} className="text-accent" />
                   {user.name} ({user.role})
                 </span>
-                {user.walletAddress && (
-                  <span className="text-xs font-mono text-muted-foreground mr-1">
-                    {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
-                  </span>
-                )}
               </div>
-              <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
+              <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 ml-2">
                 <LogOut size={16} />
                 <span className="hidden sm:inline">Logout</span>
               </Button>
