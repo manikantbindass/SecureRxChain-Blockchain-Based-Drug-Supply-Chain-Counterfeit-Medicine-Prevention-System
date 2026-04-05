@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Shared/Navbar';
+import Layout from './components/Shared/Layout';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import Manufacturer from './components/Dashboard/Manufacturer';
@@ -14,7 +15,7 @@ function App() {
     <AuthProvider>
       <Router>
         <Navbar />
-        <div style={{ padding: '20px' }}>
+        <Layout>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -25,7 +26,7 @@ function App() {
             <Route path="/verify/:id" element={<Consumer />} />
             <Route path="/" element={<Navigate to="/login" />} />
           </Routes>
-        </div>
+        </Layout>
       </Router>
     </AuthProvider>
   );

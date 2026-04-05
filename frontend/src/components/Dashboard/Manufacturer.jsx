@@ -1,6 +1,23 @@
 import { useState } from 'react';
-import { Box, Button, TextField, Typography, Paper, CircularProgress, Alert, Divider } from '@mui/material';
+import { motion } from 'framer-motion';
+import { Package, Send, CheckCircle, AlertTriangle, Box as BoxIcon, Calendar, FileText, Download } from 'lucide-react';
 import api from '../../utils/api';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Input } from '../ui/Input';
+import { Badge } from '../ui/Badge';
+
+const easeOut = [0.16, 1, 0.3, 1];
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 28 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: easeOut } }
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1, delayChildren: 0.1 } }
+};
 
 const Manufacturer = () => {
   const [formData, setFormData] = useState({
@@ -27,7 +44,7 @@ const Manufacturer = () => {
         quantity: Number(formData.quantity)
       };
       const res = await api.post('/drugs/register', payload);
-      setSuccess(`Drug Registered! Transaction Hash: ${res.data.txHash}`);
+      setSuccess(`Drug Registered! Tx Hash: ${res.data.txHash}`);
       setQrCode(res.data.qrImage);
     } catch (err) {
       setError(err.response?.data?.msg || 'Failed to register drug');
@@ -44,7 +61,7 @@ const Manufacturer = () => {
     try {
       const payload = { ...transferData, newState: 1 }; // 1 = InTransit
       const res = await api.post('/drugs/transfer', payload);
-      setSuccessTransfer(`Transfer Successful! Transaction Hash: ${res.data.txHash}`);
+      setSuccessTransfer(`Transfer Successful! Tx Hash: ${res.data.txHash}`);
     } catch (err) {
       setErrorTransfer(err.response?.data?.msg || 'Failed to transfer drug');
     } finally {
@@ -53,54 +70,160 @@ const Manufacturer = () => {
   };
 
   return (
-    <Box mt={4} display="flex" flexDirection="column" alignItems="center">
-      <Paper elevation={3} sx={{ padding: 4, width: '100%', maxWidth: '600px' }}>
-        <Typography variant="h5" mb={3}>Manufacturer Portal: Register New Drug Batch</Typography>
-        
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+    <motion.div 
+      initial="hidden" animate="visible" variants={staggerContainer}
+      className="max-w-5xl mx-auto space-y-12"
+    >
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
+        <div>
+          <Badge className="mb-4">Manufacturer Portal</Badge>
+          <h1 className="text-4xl md:text-5xl font-serif">
+            Batch <span className="gradient-text">Management</span>
+          </h1>
+        </div>
+      </div>
 
-        <form onSubmit={handleSubmit}>
-          <TextField fullWidth label="Batch ID (e.g., BATCH001)" margin="normal" value={formData.batchId} onChange={(e) => setFormData({...formData, batchId: e.target.value})} required />
-          <TextField fullWidth label="Drug Name" margin="normal" value={formData.drugName} onChange={(e) => setFormData({...formData, drugName: e.target.value})} required />
-          <TextField fullWidth label="Description" margin="normal" multiline rows={2} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
-          <TextField fullWidth label="Manufacturing Date" type="date" InputLabelProps={{ shrink: true }} margin="normal" value={formData.manufacturingDate} onChange={(e) => setFormData({...formData, manufacturingDate: e.target.value})} required />
-          <TextField fullWidth label="Expiry Date" type="date" InputLabelProps={{ shrink: true }} margin="normal" value={formData.expiryDate} onChange={(e) => setFormData({...formData, expiryDate: e.target.value})} required />
-          <TextField fullWidth label="Quantity" type="number" margin="normal" value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: e.target.value})} required />
-          
-          <Button fullWidth variant="contained" color="primary" type="submit" sx={{ mt: 3 }} disabled={loading}>
-            {loading ? <CircularProgress size={24} /> : 'Register Drug on Blockchain'}
-          </Button>
-        </form>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <motion.div variants={fadeInUp} className="lg:col-span-7">
+          <Card elevated className="h-full">
+            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
+              <div className="bg-accent/10 p-3 rounded-lg text-accent">
+                <Package size={24} />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold">Register New Batch</h2>
+                <p className="text-sm text-muted-foreground">Mint a new drug batch onto the blockchain</p>
+              </div>
+            </div>
 
-        {qrCode && (
-          <Box mt={4} display="flex" flexDirection="column" alignItems="center">
-            <Typography variant="h6">Generated QR Code</Typography>
-            <Typography variant="body2" color="textSecondary" mb={2}>Print this on the drug packaging</Typography>
-            <img src={qrCode} alt="Drug QR Code" style={{ border: '1px solid #ddd', padding: '10px' }} />
-            <Button variant="outlined" sx={{ mt: 2 }} href={qrCode} download={`QR_${formData.batchId}.png`}>
-              Download QR Code
-            </Button>
-          </Box>
-        )}
+            {error && (
+              <div className="bg-red-50 text-red-600 border border-red-100 p-4 rounded-xl mb-6 flex items-start gap-3">
+                <AlertTriangle className="shrink-0" size={20} />
+                <p className="text-sm">{error}</p>
+              </div>
+            )}
+            
+            {success && (
+              <div className="bg-green-50 text-green-700 border border-green-100 p-4 rounded-xl mb-6 flex items-start gap-3">
+                <CheckCircle className="shrink-0 text-green-500" size={20} />
+                <p className="text-sm break-all">{success}</p>
+              </div>
+            )}
 
-        <Divider sx={{ my: 4, width: '100%' }} />
-        <Typography variant="h5" mb={3} mt={2}>Transfer Drug Batch to Distributor</Typography>
-        
-        {errorTransfer && <Alert severity="error" sx={{ mb: 2 }}>{errorTransfer}</Alert>}
-        {successTransfer && <Alert severity="success" sx={{ mb: 2 }}>{successTransfer}</Alert>}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground ml-1">Batch ID</label>
+                  <Input placeholder="e.g. BATCH-001" value={formData.batchId} onChange={e => setFormData({...formData, batchId: e.target.value})} required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground ml-1">Drug Name</label>
+                  <Input placeholder="e.g. Paracetamol 500mg" value={formData.drugName} onChange={e => setFormData({...formData, drugName: e.target.value})} required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground ml-1 flex items-center gap-2"><Calendar size={14}/> Mfg Date</label>
+                  <Input type="date" value={formData.manufacturingDate} onChange={e => setFormData({...formData, manufacturingDate: e.target.value})} required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground ml-1 flex items-center gap-2"><Calendar size={14}/> Expiry Date</label>
+                  <Input type="date" value={formData.expiryDate} onChange={e => setFormData({...formData, expiryDate: e.target.value})} required />
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-sm font-medium text-foreground ml-1 flex items-center gap-2"><BoxIcon size={14}/> Quantity</label>
+                  <Input type="number" placeholder="Total units" value={formData.quantity} onChange={e => setFormData({...formData, quantity: e.target.value})} required />
+                </div>
+                <div className="space-y-1.5 md:col-span-2 flex flex-col">
+                  <label className="text-sm font-medium text-foreground ml-1 flex items-center gap-2"><FileText size={14}/> Description</label>
+                  <textarea 
+                    className="flex min-h-[80px] w-full rounded-xl border border-border bg-transparent md:bg-muted/10 px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    placeholder="Additional details..."
+                    value={formData.description}
+                    onChange={e => setFormData({...formData, description: e.target.value})} 
+                  />
+                </div>
+              </div>
 
-        <form onSubmit={handleTransfer} style={{ width: '100%' }}>
-          <TextField fullWidth label="Batch ID" margin="normal" value={transferData.batchId} onChange={(e) => setTransferData({...transferData, batchId: e.target.value})} required />
-          <TextField fullWidth label="Distributor Wallet Address" margin="normal" value={transferData.toAddress} onChange={(e) => setTransferData({...transferData, toAddress: e.target.value})} required />
-          
-          <Button fullWidth variant="contained" color="secondary" type="submit" sx={{ mt: 3 }} disabled={loadingTransfer}>
-            {loadingTransfer ? <CircularProgress size={24} /> : 'Transfer Ownership'}
-          </Button>
-        </form>
+              <Button type="submit" variant="primary" className="w-full mt-2" disabled={loading}>
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" /> Minting...
+                  </span>
+                ) : 'Register on Blockchain'}
+              </Button>
+            </form>
+          </Card>
+        </motion.div>
 
-      </Paper>
-    </Box>
+        <div className="lg:col-span-5 space-y-8 flex flex-col">
+          {qrCode && (
+            <motion.div variants={fadeInUp}>
+              <Card featured className="text-center">
+                <div className="bg-accent/10 p-3 rounded-lg text-accent inline-block mb-4">
+                  <CheckCircle size={24} />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">QR Code Generated</h3>
+                <p className="text-sm text-muted-foreground mb-6">Attach this to the physical batch packaging</p>
+                <div className="bg-white p-4 rounded-xl border border-border inline-block shadow-sm">
+                  <img src={qrCode} alt="Drug QR Code" className="w-48 h-48" />
+                </div>
+                <Button asChild variant="outline" className="w-full mt-6 gap-2">
+                  <a href={qrCode} download={`QR_${formData.batchId}.png`}>
+                    <Download size={16} /> Download Label
+                  </a>
+                </Button>
+              </Card>
+            </motion.div>
+          )}
+
+          <motion.div variants={fadeInUp} className="flex-grow">
+            <Card className="h-full bg-slate-900 border-slate-800 text-white shadow-xl relative overflow-hidden">
+              {/* Texture on dark card */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle,white_1px,transparent_1px)] opacity-[0.03] [background-size:16px_16px]" />
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="bg-white/10 p-2 rounded-lg text-white backdrop-blur-sm">
+                    <Send size={20} />
+                  </div>
+                  <h3 className="text-lg font-semibold">Transfer Batch</h3>
+                </div>
+
+                {errorTransfer && <div className="text-red-400 text-sm mb-4 bg-red-400/10 p-3 rounded-lg">{errorTransfer}</div>}
+                {successTransfer && <div className="text-green-400 text-sm mb-4 bg-green-400/10 p-3 rounded-lg break-all">{successTransfer}</div>}
+
+                <form onSubmit={handleTransfer} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-300 ml-1">Batch ID</label>
+                    <Input 
+                      placeholder="e.g. BATCH-001" 
+                      value={transferData.batchId} 
+                      onChange={e => setTransferData({...transferData, batchId: e.target.value})} 
+                      required 
+                      className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus-visible:ring-accent-secondary"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-300 ml-1">Distributor Address</label>
+                    <Input 
+                      placeholder="0x..." 
+                      value={transferData.toAddress} 
+                      onChange={e => setTransferData({...transferData, toAddress: e.target.value})} 
+                      required 
+                      className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus-visible:ring-accent-secondary font-mono text-sm"
+                    />
+                  </div>
+                  
+                  <Button type="submit" variant="primary" className="w-full mt-2" disabled={loadingTransfer}>
+                    {loadingTransfer ? 'Processing...' : 'Transfer Ownership'}
+                  </Button>
+                </form>
+              </div>
+            </Card>
+          </motion.div>
+
+        </div>
+      </div>
+    </motion.div>
   );
 };
 
